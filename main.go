@@ -35,6 +35,12 @@ func CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 	var url MyUrl
 	json.NewDecoder(r.Body).Decode(&url)
 
+	hd := hashids.NewData()
+	h, _ := hashids.NewWithData(hd)
+	now := time.Now()
+	url.ID, _ = h.Encode([]int{int(now.Unix())})
+	url.ShortUrl = "http://localhost:12345/" + url.ID
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	urlDatabase := client.Database("urls")
@@ -50,15 +56,7 @@ func CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
-	hd := hashids.NewData()
-	h, _ := hashids.NewWithData(hd)
-	now := time.Now()
-	url.ID, _ = h.Encode([]int{int(now.Unix())})
-	url.ShortUrl = "http://localhost:12345/" + url.ID
-	_, err = urlCollection.InsertOne(ctx, url)
-	if err != nil {
-		log.Fatal(err)
-	}
+
 	json.NewEncoder(w).Encode(url)
 
 }
